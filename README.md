@@ -1,7 +1,7 @@
 # Introduction
 
 collectd-influxdb is a [collectd](http://www.collectd.org/) plugin that
-publishes collectd values to [InfxluDB Time Series 
+publishes collectd values to [InfluxDB Time Series 
 Database](https://metrics.librato.com) using the InfluDB HTTP
 [API](http://influxdb.org/docs/api/http.html). InfluxDB is a time series,
 events, and metrics database.
