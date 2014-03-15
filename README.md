@@ -1,13 +1,13 @@
 # Introduction
 
-collectd-librato is a [collectd](http://www.collectd.org/) plugin that
-publishes collectd values to [Librato
-Metrics](https://metrics.librato.com) using the Librato Metrics
-[API](http://dev.librato.com). Librato Metrics is a hosted,
-time-series data service.
+collectd-influxdb is a [collectd](http://www.collectd.org/) plugin that
+publishes collectd values to [InfxluDB Time Series 
+Database](https://metrics.librato.com) using the InfluDB HTTP
+[API](http://influxdb.org/docs/api/http.html). InfluxDB is a time series,
+events, and metrics database.
 
-Collectd-librato was largely influenced by
-[collectd-carbon](https://github.com/indygreg/collectd-carbon).
+Collectd-influxdb was largely influenced by
+[collectd-librato](https://github.com/librato/collectd-librato).
 
 # Requirements
 
@@ -15,54 +15,8 @@ Collectd-librato was largely influenced by
   versions of 4.9.x and 4.10.x may require a patch to fix the Python
   plugin in collectd (See below).
 * Python 2.6 or later.
-* An active Librato Metrics account (sign up
-  [here](https://metrics.librato.com/sign_up)).
-
-# Installation
-
-## Using Chef
-
-If you are using Chef, there is now a [Chef
-cookbook](https://github.com/librato/collectd-librato-cookbook)
-available that will install and configure the collectd Librato plugin.
-
-## RHEL / CentOS RPMs
-
-[Eric-Olivier Lamey](https://github.com/eolamey) provides RPM packages
-for the collectd-librato plugin on RHEL/CentOS 5.x and 6.x
-distributions using his [pakk repo](https://github.com/eolamey/pakk).
-
-To install collectd-librato from the pakk repo:
-
-1. Make sure you have the EPEL repository [configured](http://fedoraproject.org/wiki/EPEL).
-1. Enable the [pakk
-repository](http://pakk.96b.it/repositories/). As root do: `wget -O  /etc/yum.repos.d/pakk.repo http://pakk.96b.it/pakk.repo`
-1. Install the plugin. As root do: `yum install collectd-librato`
-1. Configure the `/etc/collectd.d/librato.conf` file as described below.
-
-If you have a `/etc/collectd5.conf` file it should probably contain something like the following:
-```
-BaseDir     "/var/lib/collectd5"
-PIDFile     "/var/run/collectd5.pid"
-TypesDB     "/usr/share/collectd5/types.db"
-LoadPlugin syslog
-LoadPlugin cpu
-LoadPlugin interface
-LoadPlugin load
-LoadPlugin memory
-<LoadPlugin "python">
-  Globals true
-</LoadPlugin>
-<Plugin "python">
-  ModulePath "/usr/lib64/collectd/python"
-  Import "collectd-librato"
-  <Module "collectd-librato">
-    Email    "LIBRATO_EMAIL_ADDRESS"
-    APIToken "LIBRATO_API_TOKEN"
-  </Module>
-</Plugin>
-
-```
+* An InflxuDB instance (see
+  [here](http://influxdb.org/docs/)).
 
 ## Troubleshooting
 Check the logs: `/var/log/messages` or `/var/log/syslog`, etc.
@@ -70,17 +24,17 @@ Check the logs: `/var/log/messages` or `/var/log/syslog`, etc.
 `Starting collectd5: Could not find plugin rrdtool.`
 
 The collectd daemon has been configured to load the collectd plugin named "rrdtool" but it can't find it.
-If you are only sending data to Librato this can be safely ignored and
+If you are only sending data to InfluxDB this can be safely ignored and
 the `LoadPlugin rrdtool` statement in the collectd configuration can be removed.
 
 
 ```
-Unhandled python exception in init callback: Exception: Collectd-Librato.py: ERROR: Unable to open TypesDB file: /usr/share/collectd/types.db.
+Unhandled python exception in init callback: Exception: Collectd-InfluxDB.py: ERROR: Unable to open TypesDB file: /usr/share/collectd/types.db.
 plugin_dispatch_values: No write callback has been registered. Please load at least one output plugin, if you want the collected data to be stored.
 Filter subsystem: Built-in target `write': Dispatching value to all write plugins failed with status 2 (ENOENT). Most likely this means you didn't load any write plugins.
 ```
 
-The collectd daemon plugin for librato could not find a file that it needs.
+The collectd daemon plugin for influxdb could not find a file that it needs.
 This file is probably present but in a different location. Try the following:
 
 ```
@@ -95,10 +49,10 @@ Installation from source is provided by the Makefile included in the
 project. Simply clone this repository and run make install as root:
 
 ```
-$ git clone git://github.com/librato/collectd-librato.git
-$ cd collectd-librato
+$ git clone git@github.com:victorpoluceno/collectd-influxdb.git
+$ cd collectd-influxdb
 $ sudo make install
-Installed collected-librato plugin, add this
+Installed collected-influxdb plugin, add this
 to your collectd configuration to load this plugin:
 
     <LoadPlugin "python">
@@ -106,21 +60,21 @@ to your collectd configuration to load this plugin:
     </LoadPlugin>
 
     <Plugin "python">
-        # collectd-librato.py is at /opt/collectd-librato-0.0.10/lib/collectd-librato.py
-        ModulePath "/opt/collectd-librato-0.0.10/lib"
+        # collectd-influxdb.py is at /opt/collectd-influxdb-0.0.1/lib/collectd-influxdb.py
+        ModulePath "/opt/collectd-influxdb-0.0.1/lib"
 
-        Import "collectd-librato"
+        Import "collectd-influxdb"
 
-        <Module "collectd-librato">
-            Email    "joe@example.com"
-            APIToken "1985481910fe29ab201302011054857292"
+        <Module "collectd-influxdb">
+            User    "root"
+            Password "secret"
         </Module>
     </Plugin>
 ```
 
 The output above includes a sample configuration file for the
 plugin. Simply add this to `/etc/collectd.conf` or drop in the
-configuration directory as `/etc/collectd.d/librato.conf` and restart
+configuration directory as `/etc/collectd.d/influxdb.conf` and restart
 collectd. See the next section for an explanation of the plugin's
 configuration variables.
 
@@ -133,11 +87,11 @@ parameters via the <Module> config section in your Collectd config.
 
 The following parameters are required:
 
-* `Email` - The email address associated with your Librato Metrics
-  account.
+* `Host` - The host of your influxdb instance.
 
-* `APIToken` - The API token for you Librato Metrics account. This value
-  can be found your [account page](https://metrics.librato.com/account).
+* `User` - The user of your influxdb instance.
+
+* `Password` - The password of your influxdb instance.
 
 The following parameters are optional:
 
@@ -167,12 +121,12 @@ The following parameters are optional:
   suffixed onto the metric name regardless.
 
 * `FlushIntervalSecs` - This value determines how frequently metrics
-  are posted to the Librato Metrics API. This **does not** control how
+  are posted to the InfluxDB HTTP API. This **does not** control how
   frequently metrics are collected; that is controlled by the collectd
   option [`Interval`](http://collectd.org/wiki/index.php/Interval).
-  Each interval period that collectd reads metrics, the Librato plugin
-  will calculate how long it has been since the last flush to Librato
-  Metrics and will POST all collected metrics to Librato if it has
+  Each interval period that collectd reads metrics, the InfluxDB plugin
+  will calculate how long it has been since the last flush to InfluxDB
+  API and will POST all collected metrics to InfluxDB if it has
   been longer than `FlushIntervalSecs` seconds.
 
   Internally there is a hard limit on the maximum number of metrics
@@ -189,8 +143,8 @@ The following parameters are optional:
   are sent to Librato Metrics. It should be set to a comma-separated
   list of regular expression patterns to match metric names
   against. If a metric name does not match one of the regex's in this
-  variable, it will not be sent to Librato Metrics. By default, all
-  metrics in collectd are sent to Librato Metrics. For example, the
+  variable, it will not be sent to InfluxDB. By default, all
+  metrics in collectd are sent to InfluxDB. For example, the
   following restricts the set of metrics to CPU and select df metrics:
 
   `IncludeRegex "collectd.cpu.*,collectd.df.df.dev.free,collectd.df.df.root.free"`
@@ -211,28 +165,26 @@ The following is an example Collectd configuration for this plugin:
     </LoadPlugin>
 
     <Plugin "python">
-        # collectd-librato.py is at /opt/collectd-librato-0.0.10/lib/collectd-librato.py
-        ModulePath "/opt/collectd-librato-0.0.10/lib"
+        # collectd-influxdb.py is at /opt/collectd-influxdb-0.0.1/lib/collectd-influxdb.py
+        ModulePath "/opt/collectd-influxdb-0.0.1/lib"
 
-        Import "collectd-librato"
+        Import "collectd-influxdb"
 
-        <Module "collectd-librato">
-            Email    "joe@example.com"
-            APIToken "1985481910fe29ab201302011054857292"
+        <Module "collectd-influxdb">
+            Host      "http://localhost:8086"
+            User      "root"
+            Password  "secret"
         </Module>
     </Plugin>
 
 ## Supported Metrics
 
-Collectd-Librato currently supports the following collectd metric
+Collectd-InfluxDB currently supports the following collectd metric
 types:
 
-* GAUGE - Reported as a Librato Metric
-  [gauge](http://dev.librato.com/v1/gauges).
-* COUNTER - Reported as a Librato Metric
-  [counter](http://dev.librato.com/v1/counters).
-* DERIVE - Reported as a Librato Metric
-  [counter](http://dev.librato.com/v1/counters).
+* GAUGE
+* COUNTER
+* DERIVE
 
 Other metric types are currently ignored. This list will be expanded
 in the future.
@@ -249,7 +201,7 @@ want to know user time vs. idle time, etc.
 With collectd release 5.2 there is now an
 [aggregation](https://collectd.org/wiki/index.php/Plugin:Aggregation)
 plugin that can aggregate across collectd metrics before they are sent
-on to the write plugins (and on to Librato). To use this plugin we
+on to the write plugins (and on to InfluxDB). To use this plugin we
 follow the [example
 configuration](https://collectd.org/wiki/index.php/Plugin:Aggregation/Config)
 for aggregating CPU metrics across a host. Add the following to your
@@ -307,8 +259,8 @@ aggregated CPU timing metrics to get a break out of CPU performance:
 
 # Operational Notes
 
-This plugin uses a best-effort attempt to deliver metrics to Librato
-Metrics. If a flush fails to POST metrics to Librato Metrics the flush
+This plugin uses a best-effort attempt to deliver metrics to InfluxDB
+API. If a flush fails to POST metrics to InfluxDB API the flush
 will not currently be retried, but instead dropped. In most cases this
 should not happen, but if it does the plugin will continue to flush
 metrics after the failure. So in the worst case there may appear a
@@ -385,7 +337,7 @@ Using the plugin with collectd on Redhat-based distributions (RHEL,
 CentOS, Fedora) may produce the following error:
 
     Jul 20 14:54:38 mon0 collectd[2487]: plugin_load_file: The global flag is not supported, libtool 2 is required for this.
-    Jul 20 14:54:38 mon0 collectd[2487]: python plugin: Error importing module "collectd_librato".
+    Jul 20 14:54:38 mon0 collectd[2487]: python plugin: Error importing module "collectd_influxdb".
     Jul 20 14:54:38 mon0 collectd[2487]: Unhandled python exception in importing module: ImportError: /usr/lib64/python2.4/lib-dynload/_socketmodule.so: undefined symbol: PyExc_ValueError
     Jul 20 14:54:38 mon0 collectd[2487]: python plugin: Found a configuration for the "collectd_librato" plugin, but the plugin isn't loaded or didn't register a configuration callback.
     Jul 20 14:54:38 mon0 collectd[2488]: plugin_dispatch_values: No write callback has been registered. Please load at least one output plugin, if you want the collected data to be stored.
