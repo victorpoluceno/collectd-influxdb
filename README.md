@@ -6,7 +6,7 @@ Database](http://influxdb.org) using the InfluDB HTTP
 [API](http://influxdb.org/docs/api/http.html). InfluxDB is a time series,
 events, and metrics database.
 
-Collectd-influxdb was largely influenced by
+Collectd-influxdb is a fork of
 [collectd-librato](https://github.com/librato/collectd-librato).
 
 # Requirements
@@ -66,8 +66,9 @@ to your collectd configuration to load this plugin:
         Import "collectd-influxdb"
 
         <Module "collectd-influxdb">
-            User    "root"
-            Password "secret"
+            Host      "http://localhost:8086"
+            User      "root"
+            Password  "secret"
         </Module>
     </Plugin>
 ```
