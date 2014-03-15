@@ -2,7 +2,7 @@
 
 collectd-influxdb is a [collectd](http://www.collectd.org/) plugin that
 publishes collectd values to [InfluxDB Time Series 
-Database](https://metrics.librato.com) using the InfluDB HTTP
+Database](http://influxdb.org) using the InfluDB HTTP
 [API](http://influxdb.org/docs/api/http.html). InfluxDB is a time series,
 events, and metrics database.
 
@@ -136,11 +136,11 @@ The following parameters are optional:
 
 * `Source` - By default the source name is taken from the configured
   collectd hostname. If you want to override the source name that is
-  used with Librato Metrics you can set the `Source` variable to a
+  used with InfluxDB you can set the `Source` variable to a
   different source name.
 
 * `IncludeRegex` - This option can be used to control the metrics that
-  are sent to Librato Metrics. It should be set to a comma-separated
+  are sent to InfluxDB. It should be set to a comma-separated
   list of regular expression patterns to match metric names
   against. If a metric name does not match one of the regex's in this
   variable, it will not be sent to InfluxDB. By default, all
@@ -257,64 +257,6 @@ aggregated CPU timing metrics to get a break out of CPU performance:
 
 ![CPU Instrument](https://s3.amazonaws.com/librato-mike/images/Selection_238.png)
 
-# Operational Notes
-
-This plugin uses a best-effort attempt to deliver metrics to InfluxDB
-API. If a flush fails to POST metrics to InfluxDB API the flush
-will not currently be retried, but instead dropped. In most cases this
-should not happen, but if it does the plugin will continue to flush
-metrics after the failure. So in the worst case there may appear a
-short gap in your metric graphs.
-
-The plugin needs to parse Collectd type files. If there was an error
-parsing a specific type (look for log messages at Collectd startup
-time), the plugin will fail to write values for this type. It will
-simply skip over them and move on to the next value. It will write a log
-message every time this happens so you can correct the problem.
-
-The plugin needs to perform redundant parsing of the type files because
-the Collectd Python API does not provide an interface to the types
-information (unlike the Perl and Java plugin APIs). Hopefully this will
-be addressed in a future version of Collectd.
-
-# Data Mangling
-
-Collectd data is collected/written in discrete tuples having the
-following:
-
-    (host, plugin, plugin_instance, type, type_instance, time, interval, metadata, values)
-
-_values_ is itself a list of { counter, gauge, derive, absolute }
-(numeric) values. To further complicate things, each distinct _type_ has
-its own definition corresponding to what's in the _values_ field.
-
-Librato Metrics, by contrast, deals with tuples of:
-
-    (source, metric_name, value, measurement_time)
-
-So we effectively have to mangle the collectd tuple down to the fields
-above.
-
-The `source` is simply set to the *host* field of the collectd
-tuple. The plugin mangles the remaining fields of the collectd tuple
-to the following Librato Metrics `metric_name`:
-
-    [metric_prefix.]plugin[.plugin_instance].type[.type_instance].data_source
-
-Where *data_source* is the name of the data source (i.e. ds_name) in
-the type being written. In the case that the plugin data source only
-has a single value, the *data_source* is not included in the name
-(unless `IncludeSingleValueNames` is set).
-
-For example, the Collectd distribution has a built-in _df_ type:
-
-    df used:GAUGE:0:1125899906842623, free:GAUGE:0:1125899906842623
-
-The *data_source* values for this type would be *used* and *free*
-yielding the metric names (along the lines of)
-*collectd.df.df.root.used* and *collectd.df.df.root.free* for the
-*root* file-system.
-
 # Troubleshooting
 
 ## Collectd Python Write Callback Bug
@@ -329,7 +271,7 @@ Collectd versions 4.9.5, 4.10.3, and 5.0.0 are the first official
 versions with a fix for this bug. If you are not running one of these
 versions or have not applied the fix (which can be seen at
 <https://github.com/indygreg/collectd/commit/31bc4bc67f9ae12fb593e18e0d3649e5d4fa13f2>),
-you will likely dispatch wrong values to Librato Metrics.
+you will likely dispatch wrong values to InfluxDB.
 
 ## Collectd on Redhat ImportError
 
@@ -339,7 +281,7 @@ CentOS, Fedora) may produce the following error:
     Jul 20 14:54:38 mon0 collectd[2487]: plugin_load_file: The global flag is not supported, libtool 2 is required for this.
     Jul 20 14:54:38 mon0 collectd[2487]: python plugin: Error importing module "collectd_influxdb".
     Jul 20 14:54:38 mon0 collectd[2487]: Unhandled python exception in importing module: ImportError: /usr/lib64/python2.4/lib-dynload/_socketmodule.so: undefined symbol: PyExc_ValueError
-    Jul 20 14:54:38 mon0 collectd[2487]: python plugin: Found a configuration for the "collectd_librato" plugin, but the plugin isn't loaded or didn't register a configuration callback.
+    Jul 20 14:54:38 mon0 collectd[2487]: python plugin: Found a configuration for the "collectd_influxdb" plugin, but the plugin isn't loaded or didn't register a configuration callback.
     Jul 20 14:54:38 mon0 collectd[2488]: plugin_dispatch_values: No write callback has been registered. Please load at least one output plugin, if you want the collected data to be stored.
     Jul 20 14:54:38 mon0 collectd[2488]: Filter subsystem: Built-in target `write': Dispatching value to all write plugins failed with status 2 (ENOENT). Most likely this means you didn't load any write plugins.
 
