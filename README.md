@@ -1,3 +1,5 @@
+# WARNING: UNDER DEVELOPMENT, NOT WORKING RIGHT NOW
+
 # Introduction
 
 collectd-influxdb is a [collectd](http://www.collectd.org/) plugin that
