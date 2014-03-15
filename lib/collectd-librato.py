@@ -40,7 +40,7 @@ config = {'api_path': '/v1/metrics',
           'flush_timeout_secs': 15,
           'lower_case': False,
           'single_value_names': False}
-plugin_name = 'Collectd-Librato.py'
+plugin_name = 'Collectd-InfluxDB.py'
 types = {}
 
 
@@ -79,7 +79,7 @@ def sanitize_field(field):
 #
 # Parse the types.db(5) file to determine metric types.
 #
-def librato_parse_types_file(path):
+def influxdb_parse_types_file(path):
     global types
 
     f = open(path, 'r')
@@ -132,7 +132,7 @@ def build_http_auth():
     return base64string.translate(None, '\n')
 
 
-def librato_config(c):
+def influxdb_config(c):
     global config
 
     for child in c.children:
@@ -180,9 +180,9 @@ def librato_config(c):
     config['auth_header'] = build_http_auth()
 
 
-def librato_flush_metrics(gauges, counters, data):
+def influxdb_flush_metrics(gauges, counters, data):
     """
-    POST a collection of gauges and counters to Librato Metrics.
+    POST a collection of gauges and counters to influxdb Metrics.
     """
 
     headers = {
@@ -200,14 +200,14 @@ def librato_flush_metrics(gauges, counters, data):
         f.close()
     except urllib2.HTTPError as error:
         body = error.read()
-        collectd.warning('%s: Failed to send metrics to Librato: Code: %d. '
+        collectd.warning('%s: Failed to send metrics to influxdb: Code: %d. '
                          'Response: %s' % (plugin_name, error.code, body))
     except IOError as error:
-        collectd.warning('%s: Error when sending metrics Librato (%s)' %
+        collectd.warning('%s: Error when sending metrics influxdb (%s)' %
                          (plugin_name, error.reason))
 
 
-def librato_queue_measurements(gauges, counters, data):
+def influxdb_queue_measurements(gauges, counters, data):
     # Updating shared data structures
     #
     data['lock'].acquire()
@@ -232,10 +232,10 @@ def librato_queue_measurements(gauges, counters, data):
     data['last_flush_time'] = curr_time
     data['lock'].release()
 
-    librato_flush_metrics(flush_gauges, flush_counters, data)
+    influxdb_flush_metrics(flush_gauges, flush_counters, data)
 
 
-def librato_write(v, data=None):
+def influxdb_write(v, data=None):
     global plugin_name, types, config
 
     if v.type not in types:
@@ -329,14 +329,14 @@ def librato_write(v, data=None):
         else:
             counters.append(measurement)
 
-    librato_queue_measurements(gauges, counters, data)
+    influxdb_queue_measurements(gauges, counters, data)
 
 
-def librato_init():
+def influxdb_init():
     import threading
 
     try:
-        librato_parse_types_file(config['types_db'])
+        influxdb_parse_types_file(config['types_db'])
     except:
         msg = '%s: ERROR: Unable to open TypesDB file: %s.' % \
               (plugin_name, config['types_db'])
@@ -347,7 +347,7 @@ def librato_init():
          'gauges': [],
          'counters': []}
 
-    collectd.register_write(librato_write, data=d)
+    collectd.register_write(influxdb_write, data=d)
 
-collectd.register_config(librato_config)
-collectd.register_init(librato_init)
+collectd.register_config(influxdb_config)
+collectd.register_init(influxdb_init)
