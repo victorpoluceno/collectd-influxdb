@@ -14,7 +14,6 @@
 #
 
 import collectd
-import errno
 import json
 import urllib2
 import time
@@ -30,20 +29,20 @@ from copy import copy
 # format of this line.
 version = "0.0.10"
 
-config = { 'api_path' : '/v1/metrics',
-           'api' : 'https://metrics-api.librato.com',
-           'types_db' : '/usr/share/collectd/types.db',
-           'metric_prefix' : 'collectd',
-           'metric_separator' : '.',
-           'source' : None,
-           'flush_interval_secs' : 30,
-           'flush_max_measurements' : 600,
-           'flush_timeout_secs' : 15,
-           'lower_case' : False,
-           'single_value_names' : False
-           }
+config = {'api_path': '/v1/metrics',
+          'api': 'https://metrics-api.librato.com',
+          'types_db': '/usr/share/collectd/types.db',
+          'metric_prefix': 'collectd',
+          'metric_separator': '.',
+          'source': None,
+          'flush_interval_secs': 30,
+          'flush_max_measurements': 600,
+          'flush_timeout_secs': 15,
+          'lower_case': False,
+          'single_value_names': False}
 plugin_name = 'Collectd-Librato.py'
 types = {}
+
 
 def str_to_num(s):
     """
@@ -52,12 +51,14 @@ def str_to_num(s):
 
     return float(s)
 
+
 def get_time():
     """
     Return the current time as epoch seconds.
     """
 
     return int(time.mktime(time.localtime()))
+
 
 def sanitize_field(field):
     """
@@ -73,6 +74,7 @@ def sanitize_field(field):
 
     # Split based on periods
     return field.split(".")
+
 
 #
 # Parse the types.db(5) file to determine metric types.
@@ -98,7 +100,7 @@ def librato_parse_types_file(path):
             ds_fields = ds.split(':')
 
             if len(ds_fields) != 4:
-                collectd.warning('%s: cannot parse data source ' \
+                collectd.warning('%s: cannot parse data source '
                                  '%s on type %s' %
                                  (plugin_name, ds, type_name))
                 continue
@@ -108,6 +110,7 @@ def librato_parse_types_file(path):
         types[type_name] = v
 
     f.close()
+
 
 def build_user_agent():
     try:
@@ -121,11 +124,13 @@ def build_user_agent():
                  (plugin_name, version, system, pver[0], pver[1])
     return user_agent
 
+
 def build_http_auth():
-    base64string = base64.encodestring('%s:%s' % \
+    base64string = base64.encodestring('%s:%s' %
                                        (config['email'],
                                         config['api_token']))
     return base64string.translate(None, '\n')
+
 
 def librato_config(c):
     global config
@@ -162,17 +167,18 @@ def librato_config(c):
                 config['flush_interval_secs'] = int(str_to_num(val))
             except:
                 msg = '%s: Invalid value for FlushIntervalSecs: %s' % \
-                          (plugin_name, val)
+                    (plugin_name, val)
                 raise Exception(msg)
 
-    if not config.has_key('api_token'):
+    if not 'api_token' in config:
         raise Exception('APIToken not defined')
 
-    if not config.has_key('email'):
+    if not 'email' in config:
         raise Exception('Email not defined')
 
     config['user_agent'] = build_user_agent()
     config['auth_header'] = build_http_auth()
+
 
 def librato_flush_metrics(gauges, counters, data):
     """
@@ -182,23 +188,22 @@ def librato_flush_metrics(gauges, counters, data):
     headers = {
         'Content-Type': 'application/json',
         'User-Agent': config['user_agent'],
-        'Authorization': 'Basic %s' % config['auth_header']
-        }
+        'Authorization': 'Basic %s' % config['auth_header']}
 
-    body = json.dumps({ 'gauges' : gauges, 'counters' : counters })
+    body = json.dumps({'gauges': gauges, 'counters': counters})
 
     url = "%s%s" % (config['api'], config['api_path'])
     req = urllib2.Request(url, body, headers)
     try:
-        f = urllib2.urlopen(req, timeout = config['flush_timeout_secs'])
-        response = f.read()
+        f = urllib2.urlopen(req, timeout=config['flush_timeout_secs'])
+        f.read()
         f.close()
     except urllib2.HTTPError as error:
         body = error.read()
-        collectd.warning('%s: Failed to send metrics to Librato: Code: %d. Response: %s' % \
-                         (plugin_name, error.code, body))
+        collectd.warning('%s: Failed to send metrics to Librato: Code: %d. '
+                         'Response: %s' % (plugin_name, error.code, body))
     except IOError as error:
-        collectd.warning('%s: Error when sending metrics Librato (%s)' % \
+        collectd.warning('%s: Error when sending metrics Librato (%s)' %
                          (plugin_name, error.reason))
 
 
@@ -214,9 +219,9 @@ def librato_queue_measurements(gauges, counters, data):
     last_flush = curr_time - data['last_flush_time']
     length = len(data['gauges']) + len(data['counters'])
 
-    if (last_flush < config['flush_interval_secs'] and \
-           length < config['flush_max_measurements']) or \
-           length == 0:
+    if (last_flush < config['flush_interval_secs'] and
+        length < config['flush_max_measurements']) or \
+            length == 0:
         data['lock'].release()
         return
 
@@ -229,19 +234,20 @@ def librato_queue_measurements(gauges, counters, data):
 
     librato_flush_metrics(flush_gauges, flush_counters, data)
 
+
 def librato_write(v, data=None):
     global plugin_name, types, config
 
     if v.type not in types:
-        collectd.warning('%s: do not know how to handle type %s. ' \
-                         'do you have all your types.db files configured?' % \
+        collectd.warning('%s: do not know how to handle type %s. '
+                         'do you have all your types.db files configured?' %
                          (plugin_name, v.type))
         return
 
     v_type = types[v.type]
 
     if len(v_type) != len(v.values):
-        collectd.warning('%s: differing number of values for type %s' % \
+        collectd.warning('%s: differing number of values for type %s' %
                          (plugin_name, v.type))
         return
 
@@ -262,7 +268,7 @@ def librato_write(v, data=None):
     counters = []
 
     srcname = config['source']
-    if srcname == None:
+    if srcname is None:
         srcname = v.host
 
     for i in range(len(v.values)):
@@ -272,7 +278,7 @@ def librato_write(v, data=None):
 
         # We only support Gauges, Counters and Derives at this time
         if ds_type != 'GAUGE' and ds_type != 'COUNTER' and \
-               ds_type != 'DERIVE':
+                ds_type != 'DERIVE':
             continue
 
         # Can value be None?
@@ -308,16 +314,15 @@ def librato_write(v, data=None):
 
         # Floor measure time?
         m_time = int(v.time)
-        if config.has_key('floor_time_secs'):
+        if 'floor_time_secs' in config:
             m_time /= config['floor_time_secs']
             m_time *= config['floor_time_secs']
 
         measurement = {
-            'name' : metric_name,
-            'source' : srcname,
-            'measure_time' : m_time,
-            'value' : value
-            }
+            'name': metric_name,
+            'source': srcname,
+            'measure_time': m_time,
+            'value': value}
 
         if ds_type == 'GAUGE':
             gauges.append(measurement)
@@ -325,6 +330,7 @@ def librato_write(v, data=None):
             counters.append(measurement)
 
     librato_queue_measurements(gauges, counters, data)
+
 
 def librato_init():
     import threading
@@ -336,14 +342,12 @@ def librato_init():
               (plugin_name, config['types_db'])
         raise Exception(msg)
 
-    d = {
-        'lock' : threading.Lock(),
-        'last_flush_time' : get_time(),
-        'gauges' : [],
-        'counters' : []
-        }
+    d = {'lock': threading.Lock(),
+         'last_flush_time': get_time(),
+         'gauges': [],
+         'counters': []}
 
-    collectd.register_write(librato_write, data = d)
+    collectd.register_write(librato_write, data=d)
 
 collectd.register_config(librato_config)
 collectd.register_init(librato_init)
