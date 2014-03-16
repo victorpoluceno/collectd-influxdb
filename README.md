@@ -71,6 +71,7 @@ to your collectd configuration to load this plugin:
             Host      "http://localhost:8086"
             User      "root"
             Password  "secret"
+            Database  "foo"
         </Module>
     </Plugin>
 ```
@@ -95,6 +96,8 @@ The following parameters are required:
 * `User` - The user of your influxdb instance.
 
 * `Password` - The password of your influxdb instance.
+
+* `Database` - The influxdb database.
 
 The following parameters are optional:
 
@@ -177,6 +180,7 @@ The following is an example Collectd configuration for this plugin:
             Host      "http://localhost:8086"
             User      "root"
             Password  "secret"
+            Database  "foo"
         </Module>
     </Plugin>
 

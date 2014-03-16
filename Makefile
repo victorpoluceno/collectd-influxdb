@@ -23,5 +23,6 @@ install:
 	@echo '            Host      "http://localhost:8086"'
 	@echo '            User      "root"'
 	@echo '            Password  "secret"'
+	@echo '            Database  "foo"'
 	@echo '        </Module>'
 	@echo '    </Plugin>'
