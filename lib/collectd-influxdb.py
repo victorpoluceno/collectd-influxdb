@@ -188,12 +188,12 @@ def influxdb_flush_metrics(series, data):
         'User-Agent': config['user_agent']}
 
     pack = []
-    for k, v in series:
+    for k, v in series.items():
         pack.append({'name': k, 'columns': ['time', 'value'], 'points': v})
 
     body = json.dumps(pack)
 
-    url = "%s/db/%s/series?u=%s&p=%s&precision=s" %\
+    url = "%s/db/%s/series?u=%s&p=%s&time_precision=s" %\
         (config['host'], config['database'],
          config['user'], config['password'])
     req = urllib2.Request(url, body, headers)
@@ -217,13 +217,13 @@ def influxdb_queue_measurements(series, data):
 
     for k, v in series.items():
         if k in data['series']:
-            data['series'].extend(v)
+            data['series'][k].extend(v)
         else:
-            data['series'] = v
+            data['series'][k] = v
 
     curr_time = get_time()
     last_flush = curr_time - data['last_flush_time']
-    length = sum([len(v) for k, v in data['series']])
+    length = sum([len(v) for k, v in data['series'].items()])
 
     if (last_flush < config['flush_interval_secs'] and
         length < config['flush_max_measurements']) or \
