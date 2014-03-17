@@ -30,7 +30,7 @@ from copy import copy
 version = "0.0.1"
 
 config = {'types_db': '/usr/share/collectd/types.db',
-          'metric_prefix': 'collectd',
+          'metric_prefix': '',
           'metric_separator': '.',
           'source': None,
           'flush_interval_secs': 30,
@@ -256,10 +256,14 @@ def influxdb_write(v, data=None):
         return
 
     name = []
-
     if len(config['metric_prefix']) > 0:
         name.append(config['metric_prefix'])
 
+    srcname = config['source']
+    if srcname is None:
+        srcname = v.host
+
+    name.append(srcname)
     name.append(v.plugin)
     if v.plugin_instance:
         name.extend(sanitize_field(v.plugin_instance))
@@ -269,11 +273,6 @@ def influxdb_write(v, data=None):
         name.extend(sanitize_field(v.type_instance))
 
     series = {}
-
-    srcname = config['source']
-    if srcname is None:
-        srcname = v.host
-
     for i in range(len(v.values)):
         value = v.values[i]
         ds_name = v_type[i][0]
